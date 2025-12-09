@@ -578,18 +578,24 @@ function startNextRound() {
 
 // Initial game start function
 function startGame() {
-    // Check if the Text-to-Speech voices are loaded
+    // Attempt to set up the voice immediately on the first user action
+    // This often fixes the silent failure in browsers.
     if (synth.getVoices().length === 0) {
         synth.onvoiceschanged = () => {
             const voices = synth.getVoices();
             voice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
-            loadNextWord();
+            // No need to call loadNextWord here, the main logic is below.
         };
     } else {
         const voices = synth.getVoices();
         voice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
-        loadNextWord();
     }
+    
+    // Clear instructions and load the first word immediately
+    currentRoundIndex = 0;
+    currentWordIndex = 0;
+    roundScore = 0;
+    loadNextWord();
 }
 </script>
 
