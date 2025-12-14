@@ -204,9 +204,9 @@
             <button id="reveal-past-participle-button" onclick="revealPastParticiple()">Past Participle</button>
 
             <div id="past-participle-container" class="hidden">
-                 <div id="past-participle-display" class="past-tense-reveal" onclick="speakText(currentWord.past_participle)"></div>
-                 <p style="margin-top: 20px; color: #333;">Is this what you thought?</p>
-                 <div id="feedback-buttons" class="button-group">
+                <div id="past-participle-display" class="past-tense-reveal" onclick="speakText(currentWord.past_participle)"></div>
+                <p style="margin-top: 20px; color: #333;">Is this what you thought?</p>
+                <div id="feedback-buttons" class="button-group">
                     <button onclick="submitFeedback(1)">Yes <span id="reward-visual"></span></button>
                     <button onclick="submitFeedback(0.5)">Not Sure</button>
                     <button onclick="submitFeedback(0)">No</button>
@@ -401,6 +401,7 @@ let currentWordIndex = 0;
 let totalScore = 0;
 let roundScore = 0;
 let currentWord = {};
+let roundWordsPlayed = []; // Array to store results for the summary
 
 const synth = window.speechSynthesis;
 let voice = null; 
@@ -424,7 +425,8 @@ const els = {
     feedbackButtons: document.getElementById('feedback-buttons'),
     roundScoreDisplay: document.getElementById('round-score-display'),
     totalScoreDisplay: document.getElementById('total-score-display'),
-    roundSummary: document.getElementById('round-summary')
+    roundSummary: document.getElementById('round-summary'),
+    questionText: document.getElementById('question-text')
 };
 
 
@@ -447,6 +449,17 @@ function speakText(text) {
     synth.speak(utterThis);
 }
 
+// Function to start the game (called by the initial button)
+function startGame() {
+    currentRoundIndex = 0;
+    currentWordIndex = 0;
+    totalScore = 0;
+    roundScore = 0;
+    roundWordsPlayed = [];
+    els.totalScoreDisplay.textContent = totalScore;
+    loadNextWord();
+}
+
 // Function to reset the view for a new word
 function resetWordView() {
     els.infinitiveDisplay.classList.remove('hidden');
@@ -462,17 +475,16 @@ function resetWordView() {
     els.simplePastDisplay.textContent = '...'; 
     els.pastParticipleDisplay.textContent = '...';
     
-    els.questionText.textContent = `Click the verb to hear it. **What is its Simple Past form?**`;
+    els.questionText.innerHTML = `Click the verb to hear it. **What is its Simple Past form?**`;
 }
 
 // Function to load the next word
 function loadNextWord() {
     if (currentRoundIndex >= GAME_DATA.length) {
-        // Handle Game Over
+        // Handle Game Over (Final Score Screen)
         views.word.classList.add('hidden');
         views.summary.classList.add('hidden');
         
-        // Display a final score message
         document.getElementById('instructions-view').innerHTML = `
             <h2 style="color: #e91e63;">Game Over! 🏆</h2>
             <p style="font-size: 1.5em;">You have completed all rounds!</p>
@@ -481,6 +493,7 @@ function loadNextWord() {
             </div>
             <p style="margin-top: 20px;">Refresh the page to play again.</p>
         `;
+        views.instructions.classList.remove('hidden');
         return; 
     }
 
@@ -510,7 +523,6 @@ function revealSimplePast() {
     els.simplePastContainer.classList.remove('hidden');
     els.simplePastDisplay.textContent = currentWord.simple_past;
     
-    // Speak the Simple Past form automatically
     speakText(currentWord.simple_past);
 
     // Update prompt and show next button
@@ -524,23 +536,33 @@ function revealPastParticiple() {
     els.pastParticipleContainer.classList.remove('hidden');
     els.pastParticipleDisplay.textContent = currentWord.past_participle;
 
-    // Speak the Past Participle form automatically
     speakText(currentWord.past_participle);
 
-    // Show the final feedback buttons for scoring
+    // Show the feedback buttons
     els.feedbackButtons.classList.remove('hidden');
+    els.questionText.innerHTML = `Did you know both forms? Select one to proceed.`;
 }
 
-// Function called by the Yes/No/Not Sure buttons
+// Function called by Yes/No/Not Sure buttons
 function submitFeedback(score) {
     roundScore += score;
     totalScore += score;
-    els.totalScoreDisplay.textContent = totalScore.toFixed(1);
-    
-    // Store result for summary view
-    currentWord.user_score = score; 
 
-    // Move to next word
+    // Store the result for the summary screen
+    roundWordsPlayed.push({
+        infinitive: currentWord.infinitive,
+        simple_past: currentWord.simple_past,
+        past_participle: currentWord.past_participle,
+        japanese_def: currentWord.japanese_def,
+        sample_sentence: currentWord.sample_sentence,
+        score: score
+    });
+
+    // Update score displays
+    els.roundScoreDisplay.textContent = roundScore.toFixed(1);
+    els.totalScoreDisplay.textContent = totalScore.toFixed(1);
+
+    // Move to the next word
     currentWordIndex++;
     loadNextWord();
 }
@@ -549,55 +571,49 @@ function submitFeedback(score) {
 function showRoundSummary() {
     views.word.classList.add('hidden');
     views.summary.classList.remove('hidden');
-
-    const currentRound = GAME_DATA[currentRoundIndex];
-
-    document.getElementById('summary-round-number').textContent = currentRound.round_number;
+    
+    document.getElementById('summary-round-number').textContent = GAME_DATA[currentRoundIndex].round_number;
     els.roundScoreDisplay.textContent = roundScore.toFixed(1);
 
-    // Build the summary list
+    // Generate the list of words for the summary
     let summaryHTML = '';
-    currentRound.words.forEach(word => {
-        const icon = word.user_score === 1 ? '✅' : (word.user_score === 0.5 ? '🟡' : '❌');
+    roundWordsPlayed.forEach(word => {
+        const check = word.score > 0 ? '✅' : '❌';
         summaryHTML += `
-            <div class="summary-item">
-                **${icon} ${word.infinitive}** / **${word.simple_past}** / **${word.past_participle}** <br>
-                *Sentence:* ${word.sample_sentence}
-            </div>`;
+            <div class="summary-item" style="border-bottom: 1px dotted #e91e63; padding-bottom: 5px;">
+                <strong>${check} ${word.infinitive}</strong>: ${word.simple_past}, ${word.past_participle}
+                <br><span style="color: #6a1b9a; font-size: 0.9em;">(${word.japanese_def})</span>
+                <br><em style="font-size: 0.9em;">Sentence: ${word.sample_sentence}</em>
+            </div>
+        `;
     });
     els.roundSummary.innerHTML = summaryHTML;
 }
 
-// Function to advance to the next round
+// Function to start the next round
 function startNextRound() {
     currentRoundIndex++;
     currentWordIndex = 0;
     roundScore = 0;
+    roundWordsPlayed = []; // Reset summary data
     loadNextWord();
 }
 
-// Initial game start function
-function startGame() {
-    // Attempt to set up the voice immediately on the first user action
-    // This often fixes the silent failure in browsers.
+// Initialize on page load to ensure voice is ready (important for TTS)
+window.onload = function() {
     if (synth.getVoices().length === 0) {
-        synth.onvoiceschanged = () => {
-            const voices = synth.getVoices();
-            voice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
-            // No need to call loadNextWord here, the main logic is below.
+        synth.onvoiceschanged = function() {
+            voice = synth.getVoices().find(v => v.lang.startsWith('en-US')) || synth.getVoices()[0];
         };
     } else {
-        const voices = synth.getVoices();
-        voice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
+        voice = synth.getVoices().find(v => v.lang.startsWith('en-US')) || synth.getVoices()[0];
     }
-    
-    // Clear instructions and load the first word immediately
-    currentRoundIndex = 0;
-    currentWordIndex = 0;
-    roundScore = 0;
-    loadNextWord();
-}
-</script>
+};
 
+// =======================================================================
+// PART 3: ENTRY POINTS (Functions called by HTML)
+// These functions already exist in the HTML structure: startGame, revealSimplePast, revealPastParticiple, submitFeedback, startNextRound
+// =======================================================================
+</script>
 </body>
 </html>
