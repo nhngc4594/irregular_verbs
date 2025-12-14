@@ -485,14 +485,20 @@ function loadNextWord() {
         views.word.classList.add('hidden');
         views.summary.classList.add('hidden');
         
+        // --- START OF REWARD GRAPHIC UPDATE ---
         document.getElementById('instructions-view').innerHTML = `
-            <h2 style="color: #e91e63;">Game Over! 🏆</h2>
-            <p style="font-size: 1.5em;">You have completed all rounds!</p>
-            <div class="score-box" style="font-size: 2em; margin-top: 30px;">
+            <h2 style="color: #e91e63;">Irregular Verb Master! 👑</h2>
+            <div style="font-size: 80px; margin: 20px 0;">
+                <span role="img" aria-label="Trophy">🏆</span>
+            </div>
+            <p style="font-size: 1.5em; font-weight: bold; color: #388e3c;">Congratulations! You have completed all ${GAME_DATA.length} rounds and mastered 100 irregular verbs!</p>
+            <div class="score-box" style="font-size: 2em; margin-top: 30px; padding: 15px; border: 3px solid #e91e63; border-radius: 10px;">
                 Final Score: <span id="final-score-display">${totalScore.toFixed(1)}</span> 🥇
             </div>
-            <p style="margin-top: 20px;">Refresh the page to play again.</p>
+            <p style="margin-top: 25px; color: #555;">Refresh the page to play again or challenge yourself to reach a perfect 100 points!</p>
         `;
+        // --- END OF REWARD GRAPHIC UPDATE ---
+        
         views.instructions.classList.remove('hidden');
         return; 
     }
@@ -515,7 +521,6 @@ function loadNextWord() {
     views.word.classList.remove('hidden');
     views.summary.classList.add('hidden');
 }
-
 
 // Function called by the "Simple Past" button
 function revealSimplePast() {
